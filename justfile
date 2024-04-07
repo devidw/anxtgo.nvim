@@ -1,2 +1,2 @@
 dev:
-    deno run --allow-all ./ranker.ts ./sample.md ./bak.md
+    deno run --allow-all ./lua/anxtgo/ranker.ts ./sample.md ./sample.md.bak

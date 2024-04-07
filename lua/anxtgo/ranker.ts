@@ -27,7 +27,7 @@ class Section {
     const lines = this.content.split("\n")
     const title = lines.shift()
     const newTitle = `${title?.split(" | ")[0]} | ${this.rank}`
-    return `{{{${newTitle}\n${lines.join("\n")}\n}}}`
+    return `{{{${newTitle}\n\n${lines.join("\n").trim()}\n\n}}}`
   }
 }
 

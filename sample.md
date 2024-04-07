@@ -1,16 +1,11 @@
-{{{ abstraction | -1
+{{{ abstraction | 0
 
 general notes and more details go here
-
-log goes below
 
 ===
 
 - minus when not implemented
-- minus when not implemented
-
 + plus when implemented
-
 
 }}}
 
@@ -18,14 +13,10 @@ log goes below
 
 general notes and more details go here
 
-log goes below
-
 ===
 
 - minus when not implemented
-
 + plus when implemented
 + plus when implemented
-
 
 }}}
