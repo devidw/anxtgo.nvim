@@ -1,33 +1,50 @@
 class Section {
   content: string
   rank?: number
+  posCount = 0
+  negCount = 0
 
   constructor(content: string) {
     this.content = content
   }
 
+  get count() {
+    return this.negCount + this.posCount
+  }
+
+  get posShare() {
+    return this.posCount / this.count
+  }
+
+  get negShare() {
+    return this.negCount / this.count
+  }
+
   computeRank() {
     const logs = this.content.split("===")[1]
-    this.rank = logs
+
+    logs
       .split("\n")
       .map((a) => a.trim())
       .filter((a) => a.length > 0 && ["-", "+"].includes(a[0]))
-      .reduce((previousValue, currentValue) => {
+      .map((currentValue) => {
         if (currentValue.startsWith("-")) {
-          return previousValue - 1
+          this.negCount++
         } else if (currentValue.startsWith("+")) {
-          return previousValue + 1
+          this.posCount++
         } else {
           throw new Error("bad start of line " + currentValue)
         }
       }, 0)
+
+    this.rank = this.posCount - this.negCount
   }
 
   toString() {
     const lines = this.content.split("\n")
     const title = lines.shift()
-    const newTitle = `${title?.split(" | ")[0]} | ${this.rank}`
-    return `{{{${newTitle}\n\n${lines.join("\n").trim()}\n\n}}}`
+    const newTitle = `${title?.split(" | ")[0].trim()} | ${this.rank} ${Math.round(this.posShare * 100)}%`
+    return `{{{ ${newTitle}\n\n${lines.join("\n").trim()}\n\n}}}`
   }
 }
 
