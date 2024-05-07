@@ -4,6 +4,12 @@ placeholder
 
 }}}
 
+{{{ Archive
+
+placeholder
+
+}}}
+
 {{{ X
 
 placeholder
@@ -14,7 +20,7 @@ X
 
 }}}
 
-{{{ abstraction | 0 50%
+{{{   0  50% | abc
 
 general notes and more details go here
 
@@ -25,7 +31,7 @@ general notes and more details go here
 
 }}}
 
-{{{ another abstration | 1 67%
+{{{   1  67% | def
 
 general notes and more details go here
 

@@ -13,13 +13,22 @@ class Section {
 
   get name() {
     const lines = this.content.split("\n")
+
     const title = lines.shift()
+
     if (!title) return
-    return title.split(" | ")[0].trim()
+
+    const parts = title.split(" | ")
+
+    if (parts.length === 2) {
+      return parts[1].trim()
+    }
+
+    return parts[0].trim()
   }
 
   get isSpecial() {
-    return this.name === "X" || this.name === "Meta"
+    return this.name === "X" || this.name === "Meta" || this.name === "Archive"
   }
 
   get count() {
@@ -59,7 +68,7 @@ class Section {
     lines.shift()
     const newTitle = this.isSpecial
       ? this.name
-      : `${this.name} | ${this.rank} ${Math.round(this.posShare * 100)}%`
+      : `${this.rank?.toString().padStart(3, " ")} ${`${Math.round(this.posShare * 100)}`.padStart(3, " ")}% | ${this.name}`
     return `{{{ ${newTitle}\n\n${lines.join("\n").trim()}\n\n}}}`
   }
 }
@@ -85,7 +94,8 @@ const contents = Deno.readTextFileSync(FILE_PATH)
 
 const sections = getSections(contents)
 
-// console.log(sections)
+console.log(sections)
+Deno.exit(0)
 
 const specials: Section[] = []
 const ranked: Section[] = []
