@@ -1,4 +1,20 @@
-{{{ abstraction | 0
+{{{ Meta
+
+placeholder
+
+}}}
+
+{{{ X
+
+placeholder
+
+===
+
+X
+
+}}}
+
+{{{ abstraction | 0 50%
 
 general notes and more details go here
 
@@ -9,7 +25,7 @@ general notes and more details go here
 
 }}}
 
-{{{ another abstration | 1
+{{{ another abstration | 1 67%
 
 general notes and more details go here
 

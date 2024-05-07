@@ -1,3 +1,6 @@
+/**
+ * highly unoptimized implementation
+ */
 class Section {
   content: string
   rank?: number
@@ -6,6 +9,17 @@ class Section {
 
   constructor(content: string) {
     this.content = content
+  }
+
+  get name() {
+    const lines = this.content.split("\n")
+    const title = lines.shift()
+    if (!title) return
+    return title.split(" | ")[0].trim()
+  }
+
+  get isSpecial() {
+    return this.name === "X" || this.name === "Meta"
   }
 
   get count() {
@@ -42,8 +56,10 @@ class Section {
 
   toString() {
     const lines = this.content.split("\n")
-    const title = lines.shift()
-    const newTitle = `${title?.split(" | ")[0].trim()} | ${this.rank} ${Math.round(this.posShare * 100)}%`
+    lines.shift()
+    const newTitle = this.isSpecial
+      ? this.name
+      : `${this.name} | ${this.rank} ${Math.round(this.posShare * 100)}%`
     return `{{{ ${newTitle}\n\n${lines.join("\n").trim()}\n\n}}}`
   }
 }
@@ -71,13 +87,24 @@ const sections = getSections(contents)
 
 // console.log(sections)
 
-sections.forEach((a) => a.computeRank())
+const specials: Section[] = []
+const ranked: Section[] = []
+
+sections.forEach((a) => {
+  if (a.isSpecial) {
+    specials.push(a)
+  } else {
+    ranked.push(a)
+  }
+})
+
+ranked.forEach((a) => a.computeRank())
 
 // console.log(sections.map((a) => a.rank))
 
-sections.sort((a, b) => a.rank! - b.rank!)
+ranked.sort((a, b) => a.rank! - b.rank!)
 
-const out = sections.map((a) => a.toString()).join("\n\n")
+const out = [...specials, ...ranked].map((a) => a.toString()).join("\n\n")
 
 // console.log(out)
 
