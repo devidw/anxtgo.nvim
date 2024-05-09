@@ -94,8 +94,8 @@ const contents = Deno.readTextFileSync(FILE_PATH)
 
 const sections = getSections(contents)
 
-console.log(sections)
-Deno.exit(0)
+// console.log(sections)
+// Deno.exit(0)
 
 const specials: Section[] = []
 const ranked: Section[] = []
@@ -109,6 +109,7 @@ sections.forEach((a) => {
 })
 
 ranked.forEach((a) => a.computeRank())
+// console.log(sections)
 
 // console.log(sections.map((a) => a.rank))
 
