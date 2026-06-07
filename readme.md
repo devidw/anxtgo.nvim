@@ -17,24 +17,49 @@ introduces a custom file format to track abstractions and reflections
 
 using marker symbols `{{{ }}}`, using `set foldmethod=marker`
 
-- everything after `|` in the title line is managed by anxtgo
-- everything after `===` starting with `+` is counted as `+1`, `-` as `-1`, the
-  resulting score is placed in the title line
-- also the sections will be reorderd based on the score, from lowest to greatest
+- the title line holds the abstraction name after a `|`; everything before the
+  `|` is managed by anxtgo (the score and the positive share)
+- everything after `===` starting with `+` is counted as `+1`, `-` as `-1`. the
+  resulting score and the share of positive logs are placed in the title line
+- the sections are reordered by score, from lowest to greatest
+
+you can start a section with just a title, anxtgo fills in the managed prefix on
+the next rank:
 
 ```
-{{{ Some Abstraction Title | 0
+{{{ Some Abstraction Title
 
 Some abstraction notes
 
 ===
 
 + 24-01-01: some reflection log about something, that implemented that abstraction
-- 24-01-01: some reflection log about something, that did not implemented the abstraction
+- 24-01-01: some reflection log about something, that did not implement the abstraction
 
 }}}
 ...
 ```
+
+after `:AnxtgoRank` the title line becomes `<score> <positive %> | <name>`:
+
+```
+{{{   0  50% | Some Abstraction Title
+
+Some abstraction notes
+
+===
+
++ 24-01-01: some reflection log about something, that implemented that abstraction
+- 24-01-01: some reflection log about something, that did not implement the abstraction
+
+}}}
+...
+```
+
+### special sections
+
+sections named `Meta`, `Archive`, or `X` are kept as-is: they are not scored or
+reordered, and they always sort to the top of the file
 
 ## usage
 
