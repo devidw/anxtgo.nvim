@@ -8,7 +8,6 @@ anxtgo.nvim brings the same idea to nvim in a single plain-text file
 
 ## installation
 
-- requires deno to be available
 - add to your plugin manager
 - `require("anxtgo").setup({})` in your config init.lua
 
