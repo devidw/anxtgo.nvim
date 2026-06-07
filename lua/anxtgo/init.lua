@@ -31,6 +31,15 @@ local function round(x)
     return math.floor(x + 0.5)
 end
 
+-- detect a vim/vi/ex modeline, e.g. "<!-- vim: set foldmethod=marker: -->".
+-- the marker may be at the start of the line or preceded by whitespace.
+local function is_modeline(line)
+    return line:match("^vim?:") ~= nil
+        or line:match("[ \t]vim?:") ~= nil
+        or line:match("^ex:") ~= nil
+        or line:match("[ \t]ex:") ~= nil
+end
+
 -- ---------------------------------------------------------------------------
 -- Section
 -- ---------------------------------------------------------------------------
@@ -180,7 +189,46 @@ function M.process(input)
         out[#out + 1] = s:toString()
     end
 
-    return table.concat(out, "\n\n")
+    local body = table.concat(out, "\n\n")
+
+    -- preserve vim modelines that live outside the {{{ }}} sections: those
+    -- before the first section stay on top, those after the last stay at the
+    -- bottom. Everything else outside sections is still discarded.
+    local lines = split(input, "\n")
+    local firstIdx, lastIdx
+    for i, ln in ipairs(lines) do
+        if ln:find("{{{", 1, true) then
+            firstIdx = firstIdx or i
+        end
+        if ln:find("}}}", 1, true) then
+            lastIdx = i
+        end
+    end
+
+    local headers, footers = {}, {}
+    if firstIdx then
+        for i = 1, firstIdx - 1 do
+            if is_modeline(lines[i]) then
+                headers[#headers + 1] = lines[i]
+            end
+        end
+    end
+    if lastIdx then
+        for i = lastIdx + 1, #lines do
+            if is_modeline(lines[i]) then
+                footers[#footers + 1] = lines[i]
+            end
+        end
+    end
+
+    if #headers > 0 then
+        body = table.concat(headers, "\n") .. "\n\n" .. body
+    end
+    if #footers > 0 then
+        body = body .. "\n\n" .. table.concat(footers, "\n")
+    end
+
+    return body
 end
 
 -- ---------------------------------------------------------------------------

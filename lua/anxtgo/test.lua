@@ -123,6 +123,33 @@ eq(table.concat(order, ","), "Meta,low,mid,high",
 eq(anxtgo.process(out), out, "process: idempotent")
 
 -- --------------------------------------------------------------------------
+-- process: vim modelines outside sections are preserved
+-- --------------------------------------------------------------------------
+local ml_input = table.concat({
+    "<!-- vim: set foldmethod=marker: -->",
+    "",
+    "{{{ old | a\n\n===\n\n+ x\n\n}}}",
+}, "\n")
+local ml_out = anxtgo.process(ml_input)
+ok(ml_out:find("<!-- vim: set foldmethod=marker: -->", 1, true) == 1,
+    "process: leading modeline kept on top")
+eq(anxtgo.process(ml_out), ml_out, "process: leading modeline idempotent")
+
+-- trailing modeline stays at the bottom
+local ft_input = "{{{ old | a\n\n===\n\n+ x\n\n}}}\n\n# vim: set ft=markdown :"
+local ft_out = anxtgo.process(ft_input)
+ok(ft_out:find("# vim: set ft=markdown :", 1, true) ~= nil,
+    "process: trailing modeline kept")
+ok(ft_out:sub(-#"# vim: set ft=markdown :") == "# vim: set ft=markdown :",
+    "process: trailing modeline at bottom")
+eq(anxtgo.process(ft_out), ft_out, "process: trailing modeline idempotent")
+
+-- non-modeline stray text outside sections is still dropped
+local stray = anxtgo.process("just a note\n\n{{{ old | a\n\n===\n\n+ x\n\n}}}")
+ok(stray:find("just a note", 1, true) == nil,
+    "process: non-modeline stray text still dropped")
+
+-- --------------------------------------------------------------------------
 -- process on the real sample.md
 -- --------------------------------------------------------------------------
 local sf = io.open(dir .. "../../sample.md", "r")
