@@ -54,6 +54,8 @@ function Section.new(content)
         rank = nil,
         posCount = 0,
         negCount = 0,
+        curStreak = 0,
+        longestPos = 0,
     }, Section)
 end
 
@@ -103,19 +105,54 @@ function Section:computeRank()
     -- everything after the first "===" separator
     local logs = split(self.content, "===")[2] or ""
 
+    -- collect the polarity of every log line in order
+    local signs = {}
     for _, raw in ipairs(split(logs, "\n")) do
         local line = trim(raw)
         if #line > 0 then
             local first = line:sub(1, 1)
             if first == "-" then
                 self.negCount = self.negCount + 1
+                signs[#signs + 1] = "-"
             elseif first == "+" then
                 self.posCount = self.posCount + 1
+                signs[#signs + 1] = "+"
             end
         end
     end
 
     self.rank = self.posCount - self.negCount
+
+    -- current streak: consecutive same-polarity entries starting from the most
+    -- recent log line (the first one), signed by that polarity
+    local cur = 0
+    if #signs > 0 then
+        local head = signs[1]
+        local n = 0
+        for i = 1, #signs do
+            if signs[i] == head then
+                n = n + 1
+            else
+                break
+            end
+        end
+        cur = (head == "+") and n or -n
+    end
+    self.curStreak = cur
+
+    -- longest run of consecutive positive entries anywhere in the log
+    local longest, run = 0, 0
+    for i = 1, #signs do
+        if signs[i] == "+" then
+            run = run + 1
+            if run > longest then
+                longest = run
+            end
+        else
+            run = 0
+        end
+    end
+    self.longestPos = longest
 end
 
 function Section:toString()
@@ -126,10 +163,24 @@ function Section:toString()
     if self:isSpecial() then
         newTitle = self:name()
     else
+        local pct = round(self:posShare() * 100)
+        -- "✓" marks the positive share when there is any positivity, otherwise
+        -- keep the right-aligned bare percent so columns line up
+        local pctStr
+        if self.posCount > 0 then
+            pctStr = "✓" .. pct .. "%"
+        else
+            pctStr = string.format("%3d%%", pct)
+        end
+        -- current streak: ↑/↓ encode the direction, the count is the run length
+        local arrow = self.curStreak < 0 and "↓" or "↑"
         newTitle = string.format(
-            "%3d %3d%% | %s",
+            "%3d %s %s%d ★%d | %s",
             self.rank,
-            round(self:posShare() * 100),
+            pctStr,
+            arrow,
+            math.abs(self.curStreak),
+            self.longestPos,
             self:name()
         )
     end

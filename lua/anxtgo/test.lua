@@ -69,18 +69,35 @@ s2:computeRank()
 eq(s2.posCount, 1, "computeRank: ignores non +/- lines (pos)")
 eq(s2.negCount, 1, "computeRank: ignores non +/- lines (neg)")
 
+-- streaks: current streak counts from the most recent (first) log line and is
+-- signed; longest positive is the longest run of consecutive + anywhere
+local st = Section.new("t | s\n\n===\n\n+ a\n+ b\n+ c\n- d\n+ e\n")
+st:computeRank()
+eq(st.curStreak, 3, "curStreak: leading +++ -> +3")
+eq(st.longestPos, 3, "longestPos: best run of + is 3")
+
+local stn = Section.new("t | s\n\n===\n\n- a\n- b\n+ c\n+ d\n+ e\n+ f\n")
+stn:computeRank()
+eq(stn.curStreak, -2, "curStreak: leading -- -> -2")
+eq(stn.longestPos, 4, "longestPos: trailing run of 4 +")
+
+local ste = Section.new("t | s\n\n===\n\n")
+ste:computeRank()
+eq(ste.curStreak, 0, "curStreak: no entries -> 0")
+eq(ste.longestPos, 0, "longestPos: no entries -> 0")
+
 -- empty share guard (no log lines -> no div by zero crash)
 local s3 = Section.new("t | z\n\n===\n\n\n")
 s3:computeRank()
 eq(s3:posShare(), 0, "posShare: zero when no entries")
-eq(s3:toString(), "{{{   0   0% | z\n\n===\n\n}}}", "toString: zero-entry section renders 0 / 0%")
+eq(s3:toString(), "{{{   0   0% ↑0 ★0 | z\n\n===\n\n}}}", "toString: zero-entry section renders 0 / 0%")
 
 -- --------------------------------------------------------------------------
 -- toString formatting (3-wide rank and percent, leading spaces)
 -- --------------------------------------------------------------------------
 local r = Section.new("old | abc\n\nnotes\n\n===\n\n+ a\n- b\n")
 r:computeRank()
-eq(r:toString(), "{{{   0  50% | abc\n\nnotes\n\n===\n\n+ a\n- b\n\n}}}",
+eq(r:toString(), "{{{   0 ✓50% ↑1 ★1 | abc\n\nnotes\n\n===\n\n+ a\n- b\n\n}}}",
     "toString: ranked section formatting")
 
 -- special sections keep just their name as the title
@@ -90,7 +107,7 @@ eq(meta:toString(), "{{{ Meta\n\nplaceholder\n\n}}}", "toString: special section
 -- negative rank widths
 local neg = Section.new("t | q\n\n===\n\n- a\n- b\n- c\n")
 neg:computeRank()
-eq(neg:toString(), "{{{  -3   0% | q\n\n===\n\n- a\n- b\n- c\n\n}}}",
+eq(neg:toString(), "{{{  -3   0% ↓3 ★0 | q\n\n===\n\n- a\n- b\n- c\n\n}}}",
     "toString: negative rank padding")
 
 -- --------------------------------------------------------------------------
@@ -159,8 +176,8 @@ if sf then
     local processed = anxtgo.process(sample)
     ok(processed:find("{{{ Meta", 1, true) ~= nil, "sample: keeps Meta")
     ok(processed:find("{{{ X", 1, true) ~= nil, "sample: keeps X")
-    ok(processed:find("  0  50%% | abc") ~= nil, "sample: abc scored 0 / 50%")
-    ok(processed:find("  1  67%% | def") ~= nil, "sample: def scored 1 / 67%")
+    ok(processed:find("  0 ✓50% ↓1 ★1 | abc", 1, true) ~= nil, "sample: abc scored 0 / 50%")
+    ok(processed:find("  1 ✓67% ↓1 ★2 | def", 1, true) ~= nil, "sample: def scored 1 / 67%")
     eq(anxtgo.process(processed), processed, "sample: process is idempotent")
 end
 

@@ -20,7 +20,7 @@ X
 
 }}}
 
-{{{   0  50% | abc
+{{{   0 ✓50% ↓1 ★1 | abc
 
 general notes and more details go here
 
@@ -31,7 +31,7 @@ general notes and more details go here
 
 }}}
 
-{{{   1  67% | def
+{{{   1 ✓67% ↓1 ★2 | def
 
 general notes and more details go here
 
