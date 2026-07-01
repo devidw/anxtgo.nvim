@@ -49,9 +49,9 @@ untouched. the `all` row is the total; below it comes one row per month that has
 dated logs, newest first:
 
 ```
-    all   0 ✓50% ↓1 ★1                <- virtual lines, not saved to disk
-  24-02  -1   0% ↓1 ★0
-  24-01   1 ✓100% ↑1 ★1
+    all  ✓50% ★1                      <- virtual lines, not saved to disk
+  24-02    0% ★0 ↓1
+  24-01 ✓100% ★1
 {{{ Some Abstraction Title
 
 Some abstraction notes
@@ -65,12 +65,16 @@ Some abstraction notes
 ...
 ```
 
-each row reads `<label> <score> ✓<positive %> ↑<current streak> ★<longest
-positive streak>`, where the label is `all` for the total or `YY-MM` for a
-month. months are bucketed from the `YY-MM-DD` date at the start of each log
-line; log lines without a date still count toward the total but get no month
-row. the stats are anchored just above the `{{{` marker (outside the fold) so
-they stay visible whether or not the section is folded.
+each row reads `<label> ✓<positive %> ★<record>`, where the label is `all` for
+the total or `YY-MM` for a month, and the record (`★`) is the longest run of
+consecutive positive logs in that scope. the current streak (`↑`/`↓` plus its
+length) is momentum-of-now, so it is shown on exactly one row — the newest month
+(or the `all` row when there are no dated logs). months are bucketed from the
+first `YY-MM-DD` date anywhere in each log line; log lines without a date still
+count toward the total but get no month row. within a section the label, %, and
+record columns are each padded to the widest value in the group so they line up.
+the stats are anchored just above the `{{{` marker (outside the fold) so they
+stay visible whether or not the section is folded.
 
 ### special sections
 

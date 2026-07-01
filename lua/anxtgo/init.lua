@@ -85,31 +85,59 @@ local function stats_from_signs(signs)
     }
 end
 
--- Render a stats table as a labelled line, e.g. "  all   0 ✓50% ↑1 ★1" or
--- "24-01   1 ✓100% ↑1 ★1". The 5-wide label column lines month rows up under the
--- total row.
-local function format_stats(label, st)
+-- display width in terminal columns. Every glyph we emit (✓ ★ ↑ ↓ plus ascii)
+-- is one column wide, so this is just the utf-8 codepoint count: bytes that are
+-- not continuation bytes (0x80-0xBF).
+local function dwidth(s)
+    local n = 0
+    for i = 1, #s do
+        local b = s:byte(i)
+        if b < 0x80 or b >= 0xC0 then
+            n = n + 1
+        end
+    end
+    return n
+end
+
+-- left-pad `s` with spaces to display width `w` (right-align)
+local function lpad(s, w)
+    local pad = w - dwidth(s)
+    return pad > 0 and (string.rep(" ", pad) .. s) or s
+end
+
+-- the raw fields of one row, before column widths are known
+local function row_fields(label, st, streak)
     local count = st.posCount + st.negCount
     local pct = round((count == 0 and 0 or st.posCount / count) * 100)
-    -- "✓" marks the positive share when there is any positivity, otherwise keep
-    -- the right-aligned bare percent so columns line up
-    local pctStr
-    if st.posCount > 0 then
-        pctStr = "✓" .. pct .. "%"
-    else
-        pctStr = string.format("%3d%%", pct)
+    -- "✓" marks the positive share when there is any positivity
+    local pctStr = st.posCount > 0 and ("✓" .. pct .. "%") or (pct .. "%")
+    return { label = label, pct = pctStr, record = st.longestPos, streak = streak }
+end
+
+-- Format a group of rows into aligned strings: label, positive %, and record
+-- ("★" + longest positive run) are each padded to the widest value in the
+-- group. The current streak (↑/↓ + length), when present, is appended.
+local function render_group(rows)
+    local labelW, pctW, recW = 0, 0, 0
+    for _, r in ipairs(rows) do
+        labelW = math.max(labelW, dwidth(r.label))
+        pctW = math.max(pctW, dwidth(r.pct))
+        recW = math.max(recW, #tostring(r.record))
     end
-    -- current streak: ↑/↓ encode the direction, the count is the run length
-    local arrow = st.curStreak < 0 and "↓" or "↑"
-    return string.format(
-        "%5s %3d %s %s%d ★%d",
-        label,
-        st.rank,
-        pctStr,
-        arrow,
-        math.abs(st.curStreak),
-        st.longestPos
-    )
+
+    local out = {}
+    for _, r in ipairs(rows) do
+        local line = lpad(r.label, labelW)
+            .. " " .. lpad(r.pct, pctW)
+            .. " ★" .. lpad(tostring(r.record), recW)
+        if r.streak ~= nil then
+            -- ↑/↓ encode the direction, the count is the run length
+            local arrow = r.streak < 0 and "↓" or "↑"
+            line = line .. " " .. arrow .. math.abs(r.streak)
+        end
+        out[#out + 1] = line
+    end
+    return out
 end
 
 -- ---------------------------------------------------------------------------
@@ -224,18 +252,24 @@ function Section:computeRank()
 end
 
 -- the managed stats block that gets inlaid as virtual lines: the "all" total
--- first, then one line per month that has dated logs (newest first). Returns
--- nil for special sections (they are not scored).
+-- first, then one line per month that has dated logs (newest first). Every row
+-- carries the positive % and the record (longest positive run). The current
+-- streak is momentum-of-now, so it shows on exactly one row: the newest month
+-- (or the total when there are no dated logs). Returns nil for special sections.
 function Section:statsLines()
     if self:isSpecial() then
         return nil
     end
 
-    local lines = { format_stats("all", self) }
-    for _, m in ipairs(self.months) do
-        lines[#lines + 1] = format_stats(m.month, m)
+    if #self.months == 0 then
+        return render_group({ row_fields("all", self, self.curStreak) })
     end
-    return lines
+
+    local rows = { row_fields("all", self, nil) }
+    for i, m in ipairs(self.months) do
+        rows[#rows + 1] = row_fields(m.month, m, i == 1 and self.curStreak or nil)
+    end
+    return render_group(rows)
 end
 
 -- ---------------------------------------------------------------------------
