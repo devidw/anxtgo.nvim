@@ -17,19 +17,17 @@ introduces a custom file format to track abstractions and reflections
 
 using marker symbols `{{{ }}}`, using `set foldmethod=marker`
 
-- the title line holds the abstraction name after a `|`; everything before the
-  `|` is managed by anxtgo (the score, the positive share, and streak stats)
+- the title line is just the abstraction name — anxtgo never writes to the file,
+  the computed stats are inlaid as a virtual line above each section
 - everything after `===` starting with `+` is counted as `+1`, `-` as `-1`. the
-  resulting score and the share of positive logs are placed in the title line
+  resulting score and the share of positive logs are shown in the inlay
 - the positive share is shown with a `✓` marker (e.g. `✓67%`) when there is any
   positivity
-- the title also shows two streak stats: the current streak (`↑`/`↓` for the
+- the inlay also shows two streak stats: the current streak (`↑`/`↓` for the
   direction plus the run length, counted from the most recent / first log line)
   and the longest run of consecutive positive logs (`★`)
-- the sections are reordered by score, from lowest to greatest
 
-you can start a section with just a title, anxtgo fills in the managed prefix on
-the next rank:
+a section is just a title, notes, and a log:
 
 ```
 {{{ Some Abstraction Title
@@ -45,31 +43,47 @@ Some abstraction notes
 ...
 ```
 
-after `:AnxtgoRank` the title line becomes
-`<score> ✓<positive %> ↑<current streak> ★<longest positive streak> | <name>`:
+stats are computed asynchronously when the file opens (and again on
+`:AnxtgoRank`) and rendered as virtual lines — the buffer text is left
+untouched. the `all` row is the total; below it comes one row per month that has
+dated logs, newest first:
 
 ```
-{{{   0 ✓50% ↑1 ★1 | Some Abstraction Title
+    all   0 ✓50% ↓1 ★1                <- virtual lines, not saved to disk
+  24-02  -1   0% ↓1 ★0
+  24-01   1 ✓100% ↑1 ★1
+{{{ Some Abstraction Title
 
 Some abstraction notes
 
 ===
 
-+ 24-01-01: some reflection log about something, that implemented that abstraction
-- 24-01-01: some reflection log about something, that did not implement the abstraction
+- 24-02-14: some reflection log about something, that did not implement the abstraction
++ 24-01-01: some reflection log about something, that implemented the abstraction
 
 }}}
 ...
 ```
 
+each row reads `<label> <score> ✓<positive %> ↑<current streak> ★<longest
+positive streak>`, where the label is `all` for the total or `YY-MM` for a
+month. months are bucketed from the `YY-MM-DD` date at the start of each log
+line; log lines without a date still count toward the total but get no month
+row. note that virtual lines are hidden inside a closed marker fold, so the
+stats show when a section is unfolded.
+
 ### special sections
 
 sections named `Meta`, `Archive`, or `X` are kept as-is: they are not scored or
-reordered, and they always sort to the top of the file
+inlaid
+
+## configuration
+
+`setup` accepts an optional `pattern` (passed to the autocmd that renders on
+open), defaulting to `{ "*.md" }`. the `AnxtgoStats` highlight group (linked to
+`Comment` by default) controls the inlay color.
 
 ## usage
 
-- `:AnxtgoPositive` to insert `+ YY-MM-DD:`
-- `:AnxtgoNegative` to insert `- YY-MM-DD:`
-- `:AnxtgoRank` to process the current buffer and calcualte scores and reorder
-  abstractions based on scores
+- `:AnxtgoRank` to (re)compute scores for the current buffer and refresh the
+  inlaid stats

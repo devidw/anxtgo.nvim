@@ -20,25 +20,25 @@ X
 
 }}}
 
-{{{   0 ✓50% ↓1 ★1 | abc
+{{{ abc
 
 general notes and more details go here
 
 ===
 
-- minus when not implemented
-+ plus when implemented
+- 24-02-15: minus when not implemented
++ 24-01-03: plus when implemented
 
 }}}
 
-{{{   1 ✓67% ↓1 ★2 | def
+{{{ def
 
 general notes and more details go here
 
 ===
 
-- minus when not implemented
-+ plus when implemented
-+ plus when implemented
+- 24-02-15: minus when not implemented
++ 24-01-20: plus when implemented
++ 24-01-03: plus when implemented
 
 }}}

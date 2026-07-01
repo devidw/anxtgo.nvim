@@ -6,6 +6,16 @@ local dir = (arg[0] or ""):match("(.*/)") or "./"
 local anxtgo = dofile(dir .. "init.lua")
 local Section = anxtgo.Section
 
+-- split a string into a list of lines (test-side helper; the plugin works on
+-- the buffer's line array directly)
+local function to_lines(s)
+    local lines = {}
+    for line in (s .. "\n"):gmatch("(.-)\n") do
+        lines[#lines + 1] = line
+    end
+    return lines
+end
+
 -- --------------------------------------------------------------------------
 -- tiny test harness
 -- --------------------------------------------------------------------------
@@ -90,95 +100,90 @@ eq(ste.longestPos, 0, "longestPos: no entries -> 0")
 local s3 = Section.new("t | z\n\n===\n\n\n")
 s3:computeRank()
 eq(s3:posShare(), 0, "posShare: zero when no entries")
-eq(s3:toString(), "{{{   0   0% ↑0 ★0 | z\n\n===\n\n}}}", "toString: zero-entry section renders 0 / 0%")
+eq(s3:statsLines()[1], "  all   0   0% ↑0 ★0", "statsLines: zero-entry renders 0 / 0%")
+eq(#s3:statsLines(), 1, "statsLines: no dated logs -> only the total line")
 
 -- --------------------------------------------------------------------------
--- toString formatting (3-wide rank and percent, leading spaces)
+-- statsLines formatting: total row is labelled "all"; undated logs -> no months
 -- --------------------------------------------------------------------------
 local r = Section.new("old | abc\n\nnotes\n\n===\n\n+ a\n- b\n")
 r:computeRank()
-eq(r:toString(), "{{{   0 ✓50% ↑1 ★1 | abc\n\nnotes\n\n===\n\n+ a\n- b\n\n}}}",
-    "toString: ranked section formatting")
+eq(r:statsLines()[1], "  all   0 ✓50% ↑1 ★1", "statsLines: ranked total row")
+eq(#r:statsLines(), 1, "statsLines: undated logs contribute no month rows")
 
--- special sections keep just their name as the title
-local meta = Section.new("Meta\n\nplaceholder\n\n")
-eq(meta:toString(), "{{{ Meta\n\nplaceholder\n\n}}}", "toString: special section")
+-- special sections have no stats lines
+eq(Section.new("Meta\n\nplaceholder\n\n"):statsLines(), nil, "statsLines: special -> nil")
 
 -- negative rank widths
 local neg = Section.new("t | q\n\n===\n\n- a\n- b\n- c\n")
 neg:computeRank()
-eq(neg:toString(), "{{{  -3   0% ↓3 ★0 | q\n\n===\n\n- a\n- b\n- c\n\n}}}",
-    "toString: negative rank padding")
+eq(neg:statsLines()[1], "  all  -3   0% ↓3 ★0", "statsLines: negative rank padding")
 
 -- --------------------------------------------------------------------------
--- get_sections
+-- statsLines: per-month breakdown (newest month first, after the total)
 -- --------------------------------------------------------------------------
-local secs = anxtgo.get_sections("{{{ a\nx }}}\n\n{{{ b\ny }}}")
-eq(#secs, 2, "get_sections: count")
-eq(secs[1]:name(), "a", "get_sections: first name")
-eq(secs[2]:name(), "b", "get_sections: second name")
+local mo = Section.new("t | m\n\n===\n\n+ 24-02-05: x\n- 24-01-10: y\n+ 24-01-02: z\n")
+mo:computeRank()
+local ml = mo:statsLines()
+eq(#ml, 3, "statsLines: total + 2 months")
+eq(ml[1], "  all   1 ✓67% ↑1 ★1", "statsLines: total across months")
+eq(ml[2], "24-02   1 ✓100% ↑1 ★1", "statsLines: newest month first")
+eq(ml[3], "24-01   0 ✓50% ↓1 ★1", "statsLines: older month second")
 
 -- --------------------------------------------------------------------------
--- process: ordering (specials first, then ranked ascending) + reordering
+-- parse_sections: captures line numbers and content
 -- --------------------------------------------------------------------------
-local input = table.concat({
-    "{{{ Meta\n\nm\n\n}}}",
-    "{{{ old | high\n\n===\n\n+ a\n+ b\n+ c\n\n}}}", -- rank +3
-    "{{{ old | low\n\n===\n\n- a\n- b\n\n}}}",       -- rank -2
-    "{{{ old | mid\n\n===\n\n+ a\n- b\n\n}}}",       -- rank 0
-}, "\n\n")
+local secs = anxtgo.parse_sections(to_lines("{{{ a\nx }}}\n\n{{{ b\ny }}}"))
+eq(#secs, 2, "parse_sections: count")
+eq(secs[1].line, 1, "parse_sections: first at line 1")
+eq(Section.new(secs[1].content):name(), "a", "parse_sections: first name")
+eq(secs[2].line, 4, "parse_sections: second at line 4")
+eq(Section.new(secs[2].content):name(), "b", "parse_sections: second name")
 
-local out = anxtgo.process(input)
-local order = {}
-for cap in out:gmatch("{{{([^{}]+)}}}") do
-    order[#order + 1] = Section.new(cap):name()
-end
-eq(table.concat(order, ","), "Meta,low,mid,high",
-    "process: specials first then ranked ascending by score")
-
--- idempotency: processing an already-processed buffer is stable
-eq(anxtgo.process(out), out, "process: idempotent")
+-- single-line section
+local one = anxtgo.parse_sections(to_lines("intro\n{{{ solo }}}\nouter"))
+eq(#one, 1, "parse_sections: single-line count")
+eq(one[1].line, 2, "parse_sections: single-line line number")
+eq(Section.new(one[1].content):name(), "solo", "parse_sections: single-line name")
 
 -- --------------------------------------------------------------------------
--- process: vim modelines outside sections are preserved
+-- compute: inlays for ranked sections only, keyed by line number
 -- --------------------------------------------------------------------------
-local ml_input = table.concat({
-    "<!-- vim: set foldmethod=marker: -->",
+local doc = table.concat({
+    "{{{ Meta",       -- line 1, special -> skipped
     "",
-    "{{{ old | a\n\n===\n\n+ x\n\n}}}",
+    "m",
+    "",
+    "}}}",
+    "",
+    "{{{ high",       -- line 7, rank +3
+    "",
+    "===",
+    "",
+    "+ a",
+    "+ b",
+    "+ c",
+    "",
+    "}}}",
 }, "\n")
-local ml_out = anxtgo.process(ml_input)
-ok(ml_out:find("<!-- vim: set foldmethod=marker: -->", 1, true) == 1,
-    "process: leading modeline kept on top")
-eq(anxtgo.process(ml_out), ml_out, "process: leading modeline idempotent")
 
--- trailing modeline stays at the bottom
-local ft_input = "{{{ old | a\n\n===\n\n+ x\n\n}}}\n\n# vim: set ft=markdown :"
-local ft_out = anxtgo.process(ft_input)
-ok(ft_out:find("# vim: set ft=markdown :", 1, true) ~= nil,
-    "process: trailing modeline kept")
-ok(ft_out:sub(-#"# vim: set ft=markdown :") == "# vim: set ft=markdown :",
-    "process: trailing modeline at bottom")
-eq(anxtgo.process(ft_out), ft_out, "process: trailing modeline idempotent")
-
--- non-modeline stray text outside sections is still dropped
-local stray = anxtgo.process("just a note\n\n{{{ old | a\n\n===\n\n+ x\n\n}}}")
-ok(stray:find("just a note", 1, true) == nil,
-    "process: non-modeline stray text still dropped")
+local inlays = anxtgo.compute(to_lines(doc))
+eq(#inlays, 1, "compute: skips special sections")
+eq(inlays[1].line, 7, "compute: inlay anchored to title line")
+eq(inlays[1].lines[1], "  all   3 ✓100% ↑3 ★3", "compute: inlay total stats")
 
 -- --------------------------------------------------------------------------
--- process on the real sample.md
+-- compute on the real sample.md
 -- --------------------------------------------------------------------------
 local sf = io.open(dir .. "../../sample.md", "r")
 if sf then
     local sample = sf:read("*a")
     sf:close()
-    local processed = anxtgo.process(sample)
-    ok(processed:find("{{{ Meta", 1, true) ~= nil, "sample: keeps Meta")
-    ok(processed:find("{{{ X", 1, true) ~= nil, "sample: keeps X")
-    ok(processed:find("  0 ✓50% ↓1 ★1 | abc", 1, true) ~= nil, "sample: abc scored 0 / 50%")
-    ok(processed:find("  1 ✓67% ↓1 ★2 | def", 1, true) ~= nil, "sample: def scored 1 / 67%")
-    eq(anxtgo.process(processed), processed, "sample: process is idempotent")
+    local sample_inlays = anxtgo.compute(to_lines(sample))
+    eq(#sample_inlays, 2, "sample: two ranked sections (abc, def)")
+    eq(sample_inlays[1].lines[1], "  all   0 ✓50% ↓1 ★1", "sample: abc total")
+    eq(sample_inlays[2].lines[1], "  all   1 ✓67% ↓1 ★2", "sample: def total")
+    eq(#sample_inlays[2].lines, 3, "sample: def has total + 2 month rows")
 end
 
 -- --------------------------------------------------------------------------
