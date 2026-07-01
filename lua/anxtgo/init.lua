@@ -189,8 +189,9 @@ function Section:computeRank()
             local first = line:sub(1, 1)
             if first == "+" or first == "-" then
                 signs[#signs + 1] = first
-                -- log lines look like "+ 24-01-31: ...": bucket by "24-01"
-                local month = line:match("^[%+%-]%s*(%d%d%-%d%d)%-%d%d")
+                -- bucket by "24-01" from the first YY-MM-DD date anywhere in the
+                -- line, so "+ [[24-01-31]] ..." parses too, not just a prefix
+                local month = line:match("(%d%d%-%d%d)%-%d%d")
                 if month then
                     if not monthSigns[month] then
                         monthSigns[month] = {}

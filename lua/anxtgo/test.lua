@@ -130,6 +130,13 @@ eq(ml[1], "  all   1 ✓67% ↑1 ★1", "statsLines: total across months")
 eq(ml[2], "24-02   1 ✓100% ↑1 ★1", "statsLines: newest month first")
 eq(ml[3], "24-01   0 ✓50% ↓1 ★1", "statsLines: older month second")
 
+-- the date is matched anywhere in the line, not just as a prefix
+local mb = Section.new("t | b\n\n===\n\n+ [[23-12-01]] abc\n- see 23-11-30 note\n")
+mb:computeRank()
+local mbl = mb:statsLines()
+eq(mbl[2], "23-12   1 ✓100% ↑1 ★1", "statsLines: date inside [[ ]] is bucketed")
+eq(mbl[3], "23-11  -1   0% ↓1 ★0", "statsLines: mid-line date is bucketed")
+
 -- --------------------------------------------------------------------------
 -- parse_sections: captures line numbers and content
 -- --------------------------------------------------------------------------
