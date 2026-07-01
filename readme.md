@@ -69,8 +69,8 @@ each row reads `<label> <score> ✓<positive %> ↑<current streak> ★<longest
 positive streak>`, where the label is `all` for the total or `YY-MM` for a
 month. months are bucketed from the `YY-MM-DD` date at the start of each log
 line; log lines without a date still count toward the total but get no month
-row. note that virtual lines are hidden inside a closed marker fold, so the
-stats show when a section is unfolded.
+row. the stats are anchored just above the `{{{` marker (outside the fold) so
+they stay visible whether or not the section is folded.
 
 ### special sections
 

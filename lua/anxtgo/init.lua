@@ -323,10 +323,24 @@ function M.render(bufnr)
         for _, text in ipairs(inlay.lines) do
             virt[#virt + 1] = { { INDENT .. text, "AnxtgoStats" } }
         end
-        vim.api.nvim_buf_set_extmark(bufnr, ns, inlay.line - 1, 0, {
-            virt_lines = virt,
-            virt_lines_above = true,
-        })
+
+        -- virt_lines attached to a line inside a closed marker fold are hidden.
+        -- The "{{{" line is the fold's first line, so anchor the block to the
+        -- line above it (outside the fold) and render below that line — this
+        -- keeps the stats visible whether or not the section is folded. Only a
+        -- section starting on line 1 has no room above and falls back to above.
+        local row = inlay.line - 1 -- 0-based title row
+        if row > 0 then
+            vim.api.nvim_buf_set_extmark(bufnr, ns, row - 1, 0, {
+                virt_lines = virt,
+                virt_lines_above = false,
+            })
+        else
+            vim.api.nvim_buf_set_extmark(bufnr, ns, row, 0, {
+                virt_lines = virt,
+                virt_lines_above = true,
+            })
+        end
     end
 end
 
