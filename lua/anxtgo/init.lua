@@ -111,29 +111,41 @@ local function row_fields(label, st, streak)
     local pct = round((count == 0 and 0 or st.posCount / count) * 100)
     -- "✓" marks the positive share when there is any positivity
     local pctStr = st.posCount > 0 and ("✓" .. pct .. "%") or (pct .. "%")
-    return { label = label, pct = pctStr, record = st.longestPos, streak = streak }
+    return {
+        label = label,
+        pct = pctStr,
+        pos = st.posCount,
+        neg = st.negCount,
+        record = st.longestPos,
+        streak = streak,
+    }
 end
 
--- Format a group of rows into aligned strings: label, positive %, and record
--- ("★" + longest positive run) are each padded to the widest value in the
--- group. The current streak (↑/↓ + length), when present, is appended.
+-- Format a group of rows into aligned strings: label, positive %, the "+"/"-"
+-- totals, and the record ("★" + longest positive run) are each padded to the
+-- widest value in the group and separated by two spaces. The current streak
+-- (↑/↓ + length), when present, is appended.
 local function render_group(rows)
-    local labelW, pctW, recW = 0, 0, 0
+    local labelW, pctW, posW, negW, recW = 0, 0, 0, 0, 0
     for _, r in ipairs(rows) do
         labelW = math.max(labelW, dwidth(r.label))
         pctW = math.max(pctW, dwidth(r.pct))
+        posW = math.max(posW, #tostring(r.pos))
+        negW = math.max(negW, #tostring(r.neg))
         recW = math.max(recW, #tostring(r.record))
     end
 
     local out = {}
     for _, r in ipairs(rows) do
         local line = lpad(r.label, labelW)
-            .. " " .. lpad(r.pct, pctW)
-            .. " ★" .. lpad(tostring(r.record), recW)
+            .. "  " .. lpad(r.pct, pctW)
+            .. "  +" .. lpad(tostring(r.pos), posW)
+            .. "  -" .. lpad(tostring(r.neg), negW)
+            .. "  ★" .. lpad(tostring(r.record), recW)
         if r.streak ~= nil then
             -- ↑/↓ encode the direction, the count is the run length
             local arrow = r.streak < 0 and "↓" or "↑"
-            line = line .. " " .. arrow .. math.abs(r.streak)
+            line = line .. "  " .. arrow .. math.abs(r.streak)
         end
         out[#out + 1] = line
     end
@@ -253,7 +265,8 @@ end
 
 -- the managed stats block that gets inlaid as virtual lines: the "all" total
 -- first, then one line per month that has dated logs (newest first). Every row
--- carries the positive % and the record (longest positive run). The current
+-- carries the positive %, the "+"/"-" totals and the record (longest positive
+-- run). The current
 -- streak is momentum-of-now, so it shows on exactly one row: the newest month
 -- (or the total when there are no dated logs). Returns nil for special sections.
 function Section:statsLines()

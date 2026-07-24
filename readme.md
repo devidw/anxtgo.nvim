@@ -22,7 +22,7 @@ using marker symbols `{{{ }}}`, using `set foldmethod=marker`
 - everything after `===` starting with `+` is counted as `+1`, `-` as `-1`. the
   resulting score and the share of positive logs are shown in the inlay
 - the positive share is shown with a `✓` marker (e.g. `✓67%`) when there is any
-  positivity
+  positivity, followed by the raw totals (`+n` positive, `-n` negative logs)
 - the inlay also shows two streak stats: the current streak (`↑`/`↓` for the
   direction plus the run length, counted from the most recent / first log line)
   and the longest run of consecutive positive logs (`★`)
@@ -49,9 +49,9 @@ untouched. the `all` row is the total; below it comes one row per month that has
 dated logs, newest first:
 
 ```
-    all  ✓50% ★1                      <- virtual lines, not saved to disk
-  24-02    0% ★0 ↓1
-  24-01 ✓100% ★1
+    all   ✓50%  +1  -1  ★1            <- virtual lines, not saved to disk
+  24-02     0%  +0  -1  ★0  ↓1
+  24-01  ✓100%  +1  -0  ★1
 {{{ Some Abstraction Title
 
 Some abstraction notes
@@ -65,14 +65,15 @@ Some abstraction notes
 ...
 ```
 
-each row reads `<label> ✓<positive %> ★<record>`, where the label is `all` for
-the total or `YY-MM` for a month, and the record (`★`) is the longest run of
-consecutive positive logs in that scope. the current streak (`↑`/`↓` plus its
-length) is momentum-of-now, so it is shown on exactly one row — the newest month
-(or the `all` row when there are no dated logs). months are bucketed from the
-first `YY-MM-DD` date anywhere in each log line; log lines without a date still
-count toward the total but get no month row. within a section the label, %, and
-record columns are each padded to the widest value in the group so they line up.
+each row reads `<label> ✓<positive %> +<positives> -<negatives> ★<record>`, where
+the label is `all` for the total or `YY-MM` for a month, and the record (`★`) is
+the longest run of consecutive positive logs in that scope. the current streak
+(`↑`/`↓` plus its length) is momentum-of-now, so it is shown on exactly one row —
+the newest month (or the `all` row when there are no dated logs). months are
+bucketed from the first `YY-MM-DD` date anywhere in each log line; log lines
+without a date still count toward the total but get no month row. within a
+section the label, %, total and record columns are each padded to the widest
+value in the group and separated by two spaces, so they line up.
 the stats are anchored just above the `{{{` marker (outside the fold) so they
 stay visible whether or not the section is folded.
 

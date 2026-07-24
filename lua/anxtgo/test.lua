@@ -100,16 +100,16 @@ eq(ste.longestPos, 0, "longestPos: no entries -> 0")
 local s3 = Section.new("t | z\n\n===\n\n\n")
 s3:computeRank()
 eq(s3:posShare(), 0, "posShare: zero when no entries")
-eq(s3:statsLines()[1], "all 0% ★0 ↑0", "statsLines: zero-entry renders 0% / ★0")
+eq(s3:statsLines()[1], "all  0%  +0  -0  ★0  ↑0", "statsLines: zero-entry renders 0% / ★0")
 eq(#s3:statsLines(), 1, "statsLines: no dated logs -> only the total line")
 
 -- --------------------------------------------------------------------------
--- statsLines: each row carries % and record (★); undated logs -> no months, so
--- the current streak lives on the "all" row as a fallback
+-- statsLines: each row carries %, the +/- totals and the record (★); undated
+-- logs -> no months, so the current streak lives on the "all" row as a fallback
 -- --------------------------------------------------------------------------
 local r = Section.new("old | abc\n\nnotes\n\n===\n\n+ a\n- b\n")
 r:computeRank()
-eq(r:statsLines()[1], "all ✓50% ★1 ↑1", "statsLines: undated total row w/ streak")
+eq(r:statsLines()[1], "all  ✓50%  +1  -1  ★1  ↑1", "statsLines: undated total row w/ streak")
 eq(#r:statsLines(), 1, "statsLines: undated logs contribute no month rows")
 
 -- special sections have no stats lines
@@ -117,7 +117,7 @@ eq(Section.new("Meta\n\nplaceholder\n\n"):statsLines(), nil, "statsLines: specia
 
 local neg = Section.new("t | q\n\n===\n\n- a\n- b\n- c\n")
 neg:computeRank()
-eq(neg:statsLines()[1], "all 0% ★0 ↓3", "statsLines: all-negative total row")
+eq(neg:statsLines()[1], "all  0%  +0  -3  ★0  ↓3", "statsLines: all-negative total row")
 
 -- --------------------------------------------------------------------------
 -- statsLines: per-month breakdown (newest month first, after the total). the
@@ -127,9 +127,9 @@ local mo = Section.new("t | m\n\n===\n\n+ 24-02-05: x\n- 24-01-10: y\n+ 24-01-02
 mo:computeRank()
 local ml = mo:statsLines()
 eq(#ml, 3, "statsLines: total + 2 months")
-eq(ml[1], "  all  ✓67% ★1", "statsLines: total row has no streak")
-eq(ml[2], "24-02 ✓100% ★1 ↑1", "statsLines: newest month carries the streak")
-eq(ml[3], "24-01  ✓50% ★1", "statsLines: older month has no streak")
+eq(ml[1], "  all   ✓67%  +2  -1  ★1", "statsLines: total row has no streak")
+eq(ml[2], "24-02  ✓100%  +1  -0  ★1  ↑1", "statsLines: newest month carries the streak")
+eq(ml[3], "24-01   ✓50%  +1  -1  ★1", "statsLines: older month has no streak")
 
 -- columns are padded to the widest value in the group (✓100% sets the width)
 local star1 = ml[1]:find("★", 1, true)
@@ -140,8 +140,8 @@ eq(ml[3]:find("★", 1, true), star1, "statsLines: ★ column aligned across row
 local mb = Section.new("t | b\n\n===\n\n+ [[23-12-01]] abc\n- see 23-11-30 note\n")
 mb:computeRank()
 local mbl = mb:statsLines()
-eq(mbl[2], "23-12 ✓100% ★1 ↑1", "statsLines: date inside [[ ]] is bucketed")
-eq(mbl[3], "23-11    0% ★0", "statsLines: mid-line date is bucketed")
+eq(mbl[2], "23-12  ✓100%  +1  -0  ★1  ↑1", "statsLines: date inside [[ ]] is bucketed")
+eq(mbl[3], "23-11     0%  +0  -1  ★0", "statsLines: mid-line date is bucketed")
 
 -- --------------------------------------------------------------------------
 -- parse_sections: captures line numbers and content
@@ -183,7 +183,7 @@ local doc = table.concat({
 local inlays = anxtgo.compute(to_lines(doc))
 eq(#inlays, 1, "compute: skips special sections")
 eq(inlays[1].line, 7, "compute: inlay anchored to title line")
-eq(inlays[1].lines[1], "all ✓100% ★3 ↑3", "compute: inlay total stats")
+eq(inlays[1].lines[1], "all  ✓100%  +3  -0  ★3  ↑3", "compute: inlay total stats")
 
 -- --------------------------------------------------------------------------
 -- compute on the real sample.md
@@ -194,8 +194,8 @@ if sf then
     sf:close()
     local sample_inlays = anxtgo.compute(to_lines(sample))
     eq(#sample_inlays, 2, "sample: two ranked sections (abc, def)")
-    eq(sample_inlays[1].lines[1], "  all  ✓50% ★1", "sample: abc total")
-    eq(sample_inlays[2].lines[1], "  all  ✓67% ★2", "sample: def total")
+    eq(sample_inlays[1].lines[1], "  all   ✓50%  +1  -1  ★1", "sample: abc total")
+    eq(sample_inlays[2].lines[1], "  all   ✓67%  +2  -1  ★2", "sample: def total")
     eq(#sample_inlays[2].lines, 3, "sample: def has total + 2 month rows")
 end
 
